@@ -1,6 +1,5 @@
--- [[ HK.BEATALL V6 - STABILIZED RAGE ]]
--- FIXED: INFINITE ERROR LOOP & SCREEN FREEZE
--- NO KOREAN / NO ERRORS
+-- [[ HK.BEATALL V6.1 - FULL TOGGLE VERSION ]]
+-- NO KOREAN / MOUSE FIXED / ALL FEATURES ON TOGGLE
 
 if getgenv().HK_EXECUTED then return end
 getgenv().HK_EXECUTED = true
@@ -11,112 +10,114 @@ local UIS = game:GetService("UserInputService")
 local LP = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
-local Settings = {
-    Rage = {Enabled = true},
-    Silent = {Enabled = true, FOV = 130},
-    AA = {Enabled = true, Orbit = true, Speed = 30, Radius = 8, Floor = false},
-    Exploits = {Wallbang = true, Void = true, Skins = true}
+-- [ 1. SETTINGS (ALL DEFAULT OFF) ]
+local HK_SET = {
+    Rage = {Enabled = false}, -- Default OFF
+    AA = {Enabled = false, Speed = 15, Radius = 6, Floor = false}, -- Default OFF
+    Exploits = {Void = false, Wallbang = false, Skins = true} -- Skins is safe to keep ON
 }
 
--- [[ 1. SAFE METATABLE HOOKING ]]
+-- [ 2. SECURE METATABLE HOOK ]
 local mt = getrawmetatable(game)
 local oldIndex = mt.__index
 local oldNamecall = mt.__namecall
 setreadonly(mt, false)
 
 mt.__index = newcclosure(function(self, key)
-    if Settings.Exploits.Skins and not checkcaller() then
-        if key == "HasSkin" or key == "Owned" or tostring(self):find("Skin") then
-            return true
-        end
+    if HK_SET.Exploits.Skins and not checkcaller() then
+        if key == "HasSkin" or key == "Owned" or tostring(self):find("Skin") then return true end
     end
     return oldIndex(self, key)
 end)
 
 mt.__namecall = newcclosure(function(self, ...)
     local method = getnamecallmethod()
-    if Settings.Exploits.Wallbang and (method == "FindPartOnRay" or method == "Raycast") then
-        return nil
-    end
+    if HK_SET.Exploits.Wallbang and (method == "FindPartOnRay" or method == "Raycast") then return nil end
     return oldNamecall(self, ...)
 end)
 setreadonly(mt, true)
 
--- [[ 2. TARGETING SYSTEM ]]
-local function GetTarget()
-    local target, dist = nil, Settings.Silent.FOV
-    local mouse = UIS:GetMouseLocation()
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= LP and p.Character and p.Character:FindFirstChild("Head") then
-            local pos, vis = Camera:WorldToViewportPoint(p.Character.Head.Position)
-            local d = (Vector2.new(pos.X, pos.Y) - mouse).Magnitude
-            if vis and d < dist then
-                dist = d
-                target = p
-            end
-        end
-    end
-    return target
-end
-
--- [[ 3. MAIN LOOP (ERROR-FREE) ]]
+-- [ 3. CORE ENGINE (ONLY RUNS WHEN ENABLED) ]
 RS.Heartbeat:Connect(function()
     local char = LP.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
 
-    -- Ragebot
-    if Settings.Rage.Enabled then
-        local t = GetTarget()
-        if t and t.Character and t.Character:FindFirstChild("Head") then
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, t.Character.Head.Position)
+    -- RAGEBOT
+    if HK_SET.Rage.Enabled then
+        local target = nil
+        local dist = 150
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= LP and p.Character and p.Character:FindFirstChild("Head") then
+                local pos, vis = Camera:WorldToViewportPoint(p.Character.Head.Position)
+                if vis then
+                    local d = (Vector2.new(pos.X, pos.Y) - UIS:GetMouseLocation()).Magnitude
+                    if d < dist then dist = d target = p end
+                end
+            end
+        end
+        if target then
+            Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, target.Character.Head.Position), 0.2)
         end
     end
 
-    -- Anti-Aim (Orbit & Floor)
-    if Settings.AA.Enabled then
+    -- ANTI-AIM (ORBIT)
+    if HK_SET.AA.Enabled then
         local t = tick()
-        if Settings.AA.Orbit then
-            local angle = t * Settings.AA.Speed
-            local off = Vector3.new(math.cos(angle)*Settings.AA.Radius, 0, math.sin(angle)*Settings.AA.Radius)
-            hrp.CFrame = CFrame.new(hrp.Position + off) * CFrame.Angles(0, angle, 0)
-        end
-        if Settings.AA.Floor then
-            hrp.CFrame = hrp.CFrame * CFrame.new(0, -1.8, 0)
-        end
+        local angle = t * HK_SET.AA.Speed
+        local off = Vector3.new(math.cos(angle)*HK_SET.AA.Radius, 0, math.sin(angle)*HK_SET.AA.Radius)
+        hrp.CFrame = CFrame.new(hrp.Position + off) * CFrame.Angles(0, angle, 0)
     end
 
-    -- Void Spam
-    if Settings.Exploits.Void then
+    -- VOID SPAM
+    if HK_SET.Exploits.Void then
         for _, v in ipairs(workspace:GetChildren()) do
-            if v:IsA("BasePart") and (v.Position - hrp.Position).Magnitude < 40 then
-                pcall(function() v.AssemblyLinearVelocity = Vector3.new(0, 12000, 0) end)
+            if v:IsA("BasePart") and (v.Position - hrp.Position).Magnitude < 35 then
+                pcall(function() v.AssemblyLinearVelocity = Vector3.new(0, 5000, 0) end)
             end
         end
     end
 end)
 
--- [[ 4. MINIMAL UI ]]
+-- [ 4. UI CONSTRUCTION (KICKHOOK STYLE) ]
 local sg = Instance.new("ScreenGui", (gethui and gethui()) or game:GetService("CoreGui"))
-local m = Instance.new("Frame", sg)
-m.Size, m.Position = UDim2.new(0, 400, 0, 300), UDim2.new(0.5, -200, 0.5, -150)
-m.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-m.Visible = true
+local Main = Instance.new("Frame", sg)
+Main.Size = UDim2.new(0, 400, 0, 320)
+Main.Position = UDim2.new(0.5, -200, 0.5, -160)
+Main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+Main.BorderSizePixel = 2
+Main.BorderColor3 = Color3.fromRGB(123, 97, 255)
+Main.Active = true
+Main.Draggable = true
 
-local function Add(txt, y, cb)
-    local b = Instance.new("TextButton", m)
-    b.Size, b.Position = UDim2.new(0, 360, 0, 40), UDim2.new(0, 20, 0, y)
-    b.Text, b.BackgroundColor3 = txt, Color3.fromRGB(40, 40, 40)
-    b.TextColor3 = Color3.new(1,1,1)
-    b.MouseButton1Click:Connect(cb)
+local function CreateToggle(txt, y, callback)
+    local b = Instance.new("TextButton", Main)
+    b.Size = UDim2.new(0, 360, 0, 40)
+    b.Position = UDim2.new(0, 20, 0, y)
+    b.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    b.Text = txt
+    b.TextColor3 = Color3.new(1, 1, 1)
+    b.Font = Enum.Font.Code
+    b.MouseButton1Click:Connect(function()
+        callback()
+        b.BackgroundColor3 = b.BackgroundColor3 == Color3.fromRGB(30, 30, 30) and Color3.fromRGB(123, 97, 255) or Color3.fromRGB(30, 30, 30)
+    end)
 end
 
-Add("TOGGLE RAGE", 60, function() Settings.Rage.Enabled = not Settings.Rage.Enabled end)
-Add("TOGGLE VOID", 110, function() Settings.Exploits.Void = not Settings.Exploits.Void end)
-Add("TOGGLE AA", 160, function() Settings.AA.Enabled = not Settings.AA.Enabled end)
+CreateToggle("RAGEBOT (LERP)", 60, function() HK_SET.Rage.Enabled = not HK_SET.Rage.Enabled end)
+CreateToggle("VOID SPAM (BYPASS)", 110, function() HK_SET.Exploits.Void = not HK_SET.Explorts.Void end)
+CreateToggle("ORBIT AA (STABLE)", 160, function() HK_SET.AA.Enabled = not HK_SET.AA.Enabled end)
+CreateToggle("WALLBANG (PURE)", 210, function() HK_SET.Exploits.Wallbang = not HK_SET.Exploits.Wallbang end)
 
-UIS.InputBegan:Connect(function(i) if i.KeyCode == Enum.KeyCode.RightControl then m.Visible = not m.Visible end end)
-print("HK LOADED.")
+-- TOGGLE UI & MOUSE FIX
+UIS.InputBegan:Connect(function(i)
+    if i.KeyCode == Enum.KeyCode.RightControl then
+        Main.Visible = not Main.Visible
+        UIS.MouseBehavior = Enum.MouseBehavior.Default
+    end
+end)
+
+print("HK.BEATALL V6.1 FULL TOGGLE READY.")
 
 
 
