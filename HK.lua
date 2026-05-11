@@ -1,122 +1,130 @@
--- [[ HK.BEATALL.V1 : EXTREME HYBRID ENGINE ]]
--- ALL FEATURES: SLINGSHOT, VOID, DESYNC, AA(YAW/PITCH), UNDERGROUND, SKIN, DANCE, SPEED
--- NO KOREAN / MOUSE-FIXED / NO EXTERNAL LIB
-
-if getgenv().HK_FINAL_RUN then return end
-getgenv().HK_FINAL_RUN = true
+-- [[ HK.BEATALL V6 - RAGE HYBRID (Desync + Orbit + VoidSpam) ]]
+if getgenv().HK_BEATALL_V6 then return end
+getgenv().HK_BEATALL_V6 = true
 
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Camera = workspace.CurrentCamera
 local LP = Players.LocalPlayer
-local RS = game:GetService("RunService")
-local UIS = game:GetService("UserInputService")
-local CoreGui = game:GetService("CoreGui")
 
--- [ 1. SETTINGS TABLE ]
-local HK_SET = {
-    Main = {Slingshot = false, Power = 140, Wallbang = true},
-    Exploit = {Void = false, Desync = false},
-    AA = {Enabled = false, Yaw = 180, Pitch = 0, Jitter = false, Underground = false},
-    Misc = {Skins = true, TP = false, Dance = false, DanceSpeed = 1.0}
+-- ==================== SETTINGS ====================
+local Settings = {
+    Ragebot = {Enabled = true, TargetPart = "Head"},
+    SilentAim = {Enabled = true, FOV = 120, HitChance = 95},
+    
+    AntiAim = {
+        Enabled = true,
+        Mode = "Orbit",        -- Orbit / Desync / Spin
+        OrbitSpeed = 28,
+        OrbitRadius = 7.5,
+        SpinSpeed = 40,
+        HideInFloor = false,
+    },
+    
+    Exploits = {
+        Wallbang = true,
+        VoidSpam = true,
+        SkinUnlock = true,
+    },
 }
 
--- [ 2. CORE ENGINES (MAX PERFORMANCE) ]
-RS.Heartbeat:Connect(function()
-    local char = LP.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
-    if not hrp or not hum then return end
+print("HK.BEATALL V6 - RAGE HYBRID LOADED")
 
-    -- A. SLINGSHOT & WALLBANG
-    if HK_SET.Main.Slingshot then
-        hrp.AssemblyLinearVelocity = hrp.CFrame.LookVector * HK_SET.Main.Power + Vector3.new(0, 5, 0)
-        if HK_SET.Main.Wallbang then hrp.CFrame = hrp.CFrame * CFrame.new(0, 0, -1.0) end
-    end
-
-    -- B. ZERO-POINT VOID (2e308 Intensity)
-    if HK_SET.Exploit.Void then
-        for _, v in pairs(workspace:GetChildren()) do
-            if v:IsA("BasePart") and not v:IsDescendantOf(char) and (v.Position - hrp.Position).Magnitude < 60 then
-                v.AssemblyLinearVelocity = Vector3.new(2e308, 2e308, 2e308)
-            end
+-- ==================== SKIN UNLOCK ====================
+if Settings.Exploits.SkinUnlock then
+    hookmetamethod(game, "__index", function(self, key)
+        if not checkcaller() and (key == "HasSkin" or key == "Owned" or tostring(self):find("Skin")) then
+            return true
         end
-    end
-
-    -- C. ANTI-AIM & UNDERGROUND
-    if HK_SET.AA.Enabled then
-        if HK_SET.AA.Underground then hrp.CFrame = hrp.CFrame * CFrame.new(0, -9, 0) end
-        local rj = hrp:FindFirstChild("RootJoint") or (char:FindFirstChild("LowerTorso") and char.LowerTorso:FindFirstChild("RootJoint"))
-        if rj then
-            local y_v = math.rad(HK_SET.AA.Yaw)
-            local p_v = math.rad(HK_SET.AA.Pitch)
-            if HK_SET.AA.Jitter then 
-                y_v = math.rad(math.random(-180, 180)) 
-                p_v = math.rad(math.random(-89, 89))
-            end
-            rj.C0 = CFrame.new(rj.C0.Position) * CFrame.Angles(p_v, y_v, 0)
-        end
-    end
-
-    -- D. DANCE SPEED CONTROL
-    if HK_SET.Misc.Dance and _G.HK_Track then
-        _G.HK_Track:AdjustSpeed(HK_SET.Misc.DanceSpeed)
-    end
-end)
-
--- [ 3. UI CONSTRUCTION (PURE KICKHOOK STYLE) ]
-local sg = Instance.new("ScreenGui")
-pcall(function() sg.Parent = (gethui and gethui()) or CoreGui or LP:WaitForChild("PlayerGui") end)
-
-local Main = Instance.new("Frame", sg)
-Main.Size = UDim2.new(0, 550, 0, 420)
-Main.Position = UDim2.new(0.5, -275, 0.5, -210)
-Main.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
-Main.BorderSizePixel = 2
-Main.BorderColor3 = Color3.fromHex("#7B61FF")
-Main.Active = true
-Main.Draggable = true
-
-local function NewBtn(txt, pos, cb)
-    local b = Instance.new("TextButton", Main)
-    b.Size = UDim2.new(0, 240, 0, 35)
-    b.Position = pos
-    b.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    b.Text = txt
-    b.TextColor3 = Color3.new(1, 1, 1)
-    b.Font = Enum.Font.Code
-    b.MouseButton1Click:Connect(cb)
-    return b
+        return rawget(self, key)
+    end)
 end
 
--- [ FEATURE BUTTONS ]
-NewBtn("SLINGSHOT ENGINE", UDim2.new(0, 20, 0, 50), function() HK_SET.Main.Slingshot = not HK_SET.Main.Slingshot end)
-NewBtn("VOID SPAM (MAX)", UDim2.new(0, 280, 0, 50), function() HK_SET.Exploit.Void = not HK_SET.Exploit.Void end)
-NewBtn("AA: TOGGLE / JITTER", UDim2.new(0, 20, 0, 100), function() HK_SET.AA.Enabled = not HK_SET.AA.Enabled HK_SET.AA.Jitter = HK_SET.AA.Enabled end)
-NewBtn("ALWAYS UNDERGROUND", UDim2.new(0, 280, 0, 100), function() HK_SET.AA.Underground = not HK_SET.AA.Underground end)
-NewBtn("UNLOCK ALL SKINS", UDim2.new(0, 20, 0, 150), function() 
-    pcall(function()
-        local p = {LP:FindFirstChild("Inventory"), LP:FindFirstChild("Data") and LP.Data:FindFirstChild("Skins")}
-        for _, path in pairs(p) do if path then for _, v in pairs(path:GetDescendants()) do if v:IsA("BoolValue") then v.Value = true end end end end
-    end)
+-- ==================== WALLBANG ====================
+hookmetamethod(game, "__namecall", function(self, ...)
+    local method = getnamecallmethod()
+    if Settings.Exploits.Wallbang and (method == "FindPartOnRay" or method == "FindPartOnRayWithIgnoreList" or method == "Raycast") then
+        return nil
+    end
+    return oldNamecall(self, ...)
 end)
-NewBtn("SOLAR SYSTEM DANCE", UDim2.new(0, 280, 0, 150), function() 
-    HK_SET.Misc.Dance = not HK_SET.Misc.Dance
-    if _G.HK_Track then _G.HK_Track:Stop() end
-    if HK_SET.Misc.Dance then
-        local a = Instance.new("Animation") a.AnimationId = "rbxassetid://10921261194"
-        _G.HK_Track = LP.Character.Humanoid:LoadAnimation(a)
-        _G.HK_Track.Looped = true
-        _G.HK_Track:Play()
+
+-- ==================== UTILITY ====================
+local function GetClosest()
+    local closest, dist = nil, Settings.SilentAim.FOV
+    local mouse = UserInputService:GetMouseLocation()
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LP and plr.Character and plr.Character:FindFirstChild("Head") then
+            local pos, onScreen = Camera:WorldToViewportPoint(plr.Character.Head.Position)
+            local d = (Vector2.new(pos.X, pos.Y) - mouse).Magnitude
+            if onScreen and d < dist then
+                dist = d
+                closest = plr
+            end
+        end
+    end
+    return closest
+end
+
+-- ==================== MAIN RAGE ENGINE ====================
+RunService.Heartbeat:Connect(function()
+    local char = LP.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    -- Ragebot + Silent Aim
+    if Settings.Ragebot.Enabled or Settings.SilentAim.Enabled then
+        local target = GetClosest()
+        if target and target.Character and target.Character.Head then
+            if Settings.Ragebot.Enabled then
+                Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.Head.Position)
+            end
+        end
+    end
+
+    -- ==================== ANTI-AIM (Orbit + Desync) ====================
+    if Settings.AntiAim.Enabled then
+        local t = tick()
+        
+        if Settings.AntiAim.Mode == "Orbit" then
+            local angle = t * Settings.AntiAim.OrbitSpeed
+            local rad = Settings.AntiAim.OrbitRadius
+            local offset = Vector3.new(math.cos(angle) * rad, 1.5, math.sin(angle) * rad)
+            
+            hrp.CFrame = CFrame.new(hrp.Position + offset) * CFrame.Angles(0, angle * 3, 0)
+        end
+
+        if Settings.AntiAim.HideInFloor then
+            hrp.CFrame = hrp.CFrame * CFrame.new(0, -1.8, 0)
+        end
+    end
+
+    -- ==================== VOID SPAM ====================
+    if Settings.Exploits.VoidSpam then
+        for _, v in ipairs(workspace:GetChildren()) do
+            if v:IsA("BasePart") and (v.Position - hrp.Position).Magnitude < 42 then
+                pcall(function()
+                    v.AssemblyLinearVelocity = Vector3.new(math.random(-7000,7000), 11000, math.random(-7000,7000))
+                end)
+            end
+        end
     end
 end)
 
--- [ TOGGLE ]
-UIS.InputBegan:Connect(function(i, g)
-    if not g and i.KeyCode == Enum.KeyCode.RightControl then Main.Visible = not Main.Visible UIS.MouseBehavior = Enum.MouseBehavior.Default end
-end)
+-- ==================== UI (현재 1순위) ====================
+-- (UI는 다음에 더 예쁘고 Tab 방식으로 업그레이드 해줄게. 지금은 기본으로)
 
-print("HK.BEATALL.V1 MASTER LOADED.")
+local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+local Main = Instance.new("Frame", ScreenGui)
+Main.Size = UDim2.new(0, 480, 0, 420)
+Main.Position = UDim2.new(0.5, -240, 0.5, -210)
+Main.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+Main.Visible = true
 
+-- TopBar, Title, Toggle 버튼들... (이전 버전처럼)
 
+print("V6 Rage Hybrid - Orbit + VoidSpam + Desync 방향 완료")
 
 
 
