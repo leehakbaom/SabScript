@@ -1,131 +1,138 @@
--- [[ HK.BEATALL.V1 : THE ULTIMATE MASTER ]]
--- CONCEPT: UNNAMED GAUGE + KICKHOOK BYPASS HYBRID
--- FEATURES: VOID, DESYNC, SLINGSHOT, ANTI-AIM, SKIN UNLOCK
--- SECURITY: NO KOREAN / MOUSE-FIXED / PC-MOBILE SUPPORT
+-- [[ HK.BEATALL.V1 : THE ABSOLUTE FINAL MASTER ]]
+-- NO KOREAN / ALL FEATURES / AUTO-SAVE / MOUSE-FIXED
+-- FEATURES: SLINGSHOT, VOID, DESYNC, AA(YAW/PITCH), UNDERGROUND, ORBIT, DANCE, SKINS
 
-if getgenv().HK_FINAL_RUN then return end
-getgenv().HK_FINAL_RUN = true
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu'))()
 
-local Players = game:GetService("Players")
-local LP = Players.LocalPlayer
-local RS = game:GetService("RunService")
-local UIS = game:GetService("UserInputService")
-local CoreGui = game:GetService("CoreGui")
-
--- [ 1. INTEGRATED SETTINGS ]
+-- [ 1. SETTINGS & TABLES ]
 local HK_SET = {
-    Main = {Slingshot = false, Power = 100, Wallbang = true},
-    Exploit = {Void = false, Desync = false, VoidRadius = 50},
-    AA = {Enabled = false, Pitch = "Jitter", Yaw = 180, Underground = false},
-    Misc = {Skins = true, TP = false, EmoteSpeed = 1.0},
-    Visuals = {Accent = Color3.fromHex("#7B61FF"), Visible = true}
+    Main = {Slingshot = false, Power = 120, Wallbang = true},
+    Combat = {Orbit = false, Speed = 15, Radius = 8},
+    Exploit = {Void = false, VoidRadius = 60, Desync = false},
+    AA = {
+        Enabled = false, 
+        PitchMode = "Jitter", -- Down, Up, Jitter, Custom
+        PitchValue = 0, 
+        YawValue = 0, -- -180 to 360
+        Underground = false
+    },
+    Dance = {Enabled = false, Id = "rbxassetid://10921261194", Speed = 1.0, Track = nil},
+    Misc = {Skins = false, TP = false}
 }
 
--- [ 2. MOUSE & UI FIX ]
-UIS.MouseIconEnabled = true
-UIS.MouseBehavior = Enum.MouseBehavior.Default
+local LP = game:GetService("Players").LocalPlayer
+local RS = game:GetService("RunService")
 
--- [ 3. CORE HYBRID ENGINE (Based on Video Analysis) ]
+-- [ 2. CORE ENGINES ]
 RS.Heartbeat:Connect(function()
     local char = LP.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
 
-    -- SLINGSHOT & WALLBANG (Unnamed Killer)
+    -- A. Slingshot & Wallbang
     if HK_SET.Main.Slingshot then
         hrp.AssemblyLinearVelocity = hrp.CFrame.LookVector * HK_SET.Main.Power + Vector3.new(0, 2, 0)
         if HK_SET.Main.Wallbang then hrp.CFrame = hrp.CFrame * CFrame.new(0, 0, -0.7) end
     end
 
-    -- ZERO-POINT VOID (Physics Pollution)
+    -- B. Void & Desync
     if HK_SET.Exploit.Void then
         for _, v in pairs(workspace:GetChildren()) do
-            if v:IsA("BasePart") and not v:IsDescendantOf(char) then
-                if (v.Position - hrp.Position).Magnitude < HK_SET.Exploit.VoidRadius then
-                    v.AssemblyLinearVelocity = Vector3.new(1e8, 1e8, 1e8)
-                end
+            if v:IsA("BasePart") and not v:IsDescendantOf(char) and (v.Position - hrp.Position).Magnitude < HK_SET.Exploit.VoidRadius then
+                v.AssemblyLinearVelocity = Vector3.new(1e8, 1e8, 1e8)
             end
         end
     end
-
-    -- PHASE-SHIFT / DESYNC (Ghosting)
     if HK_SET.Exploit.Desync then
         hrp.CFrame = hrp.CFrame * CFrame.new(math.random(-10,10)/100, 0, math.random(-10,10)/100)
     end
 
-    -- ANTI-AIM & ALWAYS UNDERGROUND
+    -- C. Advanced Anti-Aim & Underground (YAW/PITCH/UG)
     if HK_SET.AA.Enabled then
         if HK_SET.AA.Underground then hrp.CFrame = hrp.CFrame * CFrame.new(0, -8, 0) end
         local rj = hrp:FindFirstChild("RootJoint") or (char:FindFirstChild("LowerTorso") and char.LowerTorso:FindFirstChild("RootJoint"))
         if rj then
-            local pv = (HK_SET.AA.Pitch == "Jitter" and math.random(-89, 89) or -89)
-            rj.C0 = CFrame.new(rj.C0.Position) * CFrame.Angles(math.rad(pv), math.rad(HK_SET.AA.Yaw), 0)
+            local p_final = 0
+            if HK_SET.AA.PitchMode == "Jitter" then p_final = math.rad(math.random(-89, 89))
+            elseif HK_SET.AA.PitchMode == "Down" then p_final = math.rad(-89)
+            elseif HK_SET.AA.PitchMode == "Up" then p_final = math.rad(89)
+            elseif HK_SET.AA.PitchMode == "Custom" then p_final = math.rad(HK_SET.AA.PitchValue) end
+            rj.C0 = CFrame.new(rj.C0.Position) * CFrame.Angles(p_final, math.rad(HK_SET.AA.YawValue), 0)
         end
     end
 
-    -- 3RD PERSON
-    LP.CameraMaxZoomDistance = HK_SET.Misc.TP and 50 or 0.5
-    LP.CameraMinZoomDistance = HK_SET.Misc.TP and 20 or 0.5
+    -- D. Orbit
+    if HK_SET.Combat.Orbit then
+        local target = nil
+        local dist = 500
+        for _, v in pairs(game:GetService("Players"):GetPlayers()) do
+            if v ~= LP and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+                local d = (v.Character.HumanoidRootPart.Position - hrp.Position).Magnitude
+                if d < dist then dist = d target = v end
+            end
+        end
+        if target then
+            local t_hrp = target.Character.HumanoidRootPart
+            local a = tick() * HK_SET.Combat.Speed
+            hrp.CFrame = CFrame.new(t_hrp.Position + Vector3.new(math.cos(a) * HK_SET.Combat.Radius, 4, math.sin(a) * HK_SET.Combat.Radius), t_hrp.Position)
+        end
+    end
+
+    LP.CameraMaxZoomDistance = HK_SET.Misc.TP and 60 or 0.5
 end)
 
--- [ 4. FINAL MASTER UI (Full Buttons) ]
-local sg = Instance.new("ScreenGui")
-pcall(function() sg.Parent = (gethui and gethui()) or CoreGui or LP:WaitForChild("PlayerGui") end)
-
-local Main = Instance.new("Frame", sg)
-Main.Size = UDim2.new(0, 520, 0, 420)
-Main.Position = UDim2.new(0.5, -260, 0.5, -210)
-Main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-Main.BorderSizePixel = 2
-Main.BorderColor3 = HK_SET.Visuals.Accent
-Main.Active = true
-Main.Draggable = true
-
-local Title = Instance.new("TextLabel", Main)
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.BackgroundColor3 = HK_SET.Visuals.Accent
-Title.Text = "  HK.BEATALL.V1 | MASTER VERSION"
-Title.TextColor3 = Color3.new(1, 1, 1)
-Title.Font = Enum.Font.Code
-Title.TextXAlignment = Enum.TextXAlignment.Left
-
-local function CreateBtn(txt, pos, callback)
-    local b = Instance.new("TextButton", Main)
-    b.Size = UDim2.new(0, 230, 0, 40)
-    b.Position = pos
-    b.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    b.Text = txt
-    b.TextColor3 = Color3.new(1, 1, 1)
-    b.Font = Enum.Font.Code
-    b.MouseButton1Click:Connect(callback)
-    return b
+-- [ 3. DANCE FUNCTION ]
+local function UpdateDance()
+    local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    if HK_SET.Dance.Track then HK_SET.Dance.Track:Stop() end
+    if not HK_SET.Dance.Enabled then return end
+    local anim = Instance.new("Animation")
+    anim.AnimationId = HK_SET.Dance.Id
+    HK_SET.Dance.Track = hum:LoadAnimation(anim)
+    HK_SET.Dance.Track.Looped = true
+    HK_SET.Dance.Track:Play()
+    HK_SET.Dance.Track:AdjustSpeed(HK_SET.Dance.Speed)
 end
 
--- BUTTON LAYOUT
-CreateBtn("SLINGSHOT: TOGGLE", UDim2.new(0, 20, 0, 60), function() HK_SET.Main.Slingshot = not HK_SET.Main.Slingshot end)
-CreateBtn("VOID SPAM: TOGGLE", UDim2.new(0, 270, 0, 60), function() HK_SET.Exploit.Void = not HK_SET.Exploit.Void end)
-CreateBtn("PHASE DESYNC: TOGGLE", UDim2.new(0, 20, 0, 110), function() HK_SET.Exploit.Desync = not HK_SET.Exploit.Desync end)
-CreateBtn("ANTI-AIM: TOGGLE", UDim2.new(0, 270, 0, 110), function() HK_SET.AA.Enabled = not HK_SET.AA.Enabled end)
-CreateBtn("ALWAYS UNDERGROUND", UDim2.new(0, 20, 0, 160), function() HK_SET.AA.Underground = not HK_SET.AA.Underground end)
-CreateBtn("3RD PERSON: TOGGLE", UDim2.new(0, 270, 0, 160), function() HK_SET.Misc.TP = not HK_SET.Misc.TP end)
+-- [ 4. UI WINDOW ]
+local Window = Rayfield:CreateWindow({
+   Name = "HK.BEATALL.V1 | MASTER",
+   ConfigurationSaving = {Enabled = true, FolderName = "HK_Configs", FileName = "MasterConfig"}
+})
 
--- MOUSE FIX ON TOGGLE
-UIS.InputBegan:Connect(function(i, g)
-    if not g and i.KeyCode == Enum.KeyCode.RightControl then
-        Main.Visible = not Main.Visible
-        UIS.MouseBehavior = Enum.MouseBehavior.Default
-    end
-end)
+-- TABS
+local TabMain = Window:CreateTab("Main", 4483362458)
+local TabAA = Window:CreateTab("Anti-Aim", 4483362458)
+local TabDance = Window:CreateTab("Dancing", 4483362458)
+local TabMisc = Window:CreateTab("Misc/Skins", 4483362458)
 
-local MobBtn = Instance.new("TextButton", sg)
-MobBtn.Size = UDim2.new(0, 45, 0, 45)
-MobBtn.Position = UDim2.new(0, 10, 0.5, -22)
-MobBtn.Text = "HK"
-MobBtn.BackgroundColor3 = HK_SET.Visuals.Accent
-Instance.new("UICorner", MobBtn).CornerRadius = UDim.new(1, 0)
-MobBtn.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible UIS.MouseBehavior = Enum.MouseBehavior.Default end)
+-- Tab: Main
+TabMain:CreateToggle({Name = "Slingshot Engine", Flag = "Sling", Callback = function(v) HK_SET.Main.Slingshot = v end})
+TabMain:CreateToggle({Name = "Zero-Point Void", Flag = "Void", Callback = function(v) HK_SET.Exploit.Void = v end})
+TabMain:CreateToggle({Name = "Phase Desync", Flag = "Desync", Callback = function(v) HK_SET.Exploit.Desync = v end})
 
-print("HK.BEATALL.V1 MASTER LOADED.")
+-- Tab: Anti-Aim (YAW & PITCH & UNDERGROUND)
+TabAA:CreateToggle({Name = "Enable Anti-Aim", Flag = "AA", Callback = function(v) HK_SET.AA.Enabled = v end})
+TabAA:CreateDropdown({Name = "Pitch Mode", Options = {"Down", "Up", "Jitter", "Custom"}, CurrentOption = "Jitter", Flag = "PMode", Callback = function(v) HK_SET.AA.PitchMode = v end})
+TabAA:CreateSlider({Name = "Yaw Value", Range = {-180, 360}, Increment = 1, Flag = "YawV", Callback = function(v) HK_SET.AA.YawValue = v end})
+TabAA:CreateToggle({Name = "Always Underground", Flag = "UG", Callback = function(v) HK_SET.AA.Underground = v end})
+
+-- Tab: Dancing
+TabDance:CreateToggle({Name = "Solar System Dance", Flag = "Dance", Callback = function(v) HK_SET.Dance.Enabled = v UpdateDance() end})
+TabDance:CreateSlider({Name = "Dance Speed", Range = {0.1, 10}, Increment = 0.1, Flag = "DanceS", Callback = function(v) HK_SET.Dance.Speed = v if HK_SET.Dance.Track then HK_SET.Dance.Track:AdjustSpeed(v) end end)
+
+-- Tab: Misc
+TabMisc:CreateButton({Name = "Unlock All Skins", Callback = function() 
+    pcall(function()
+        local p = {LP:FindFirstChild("Inventory"), LP:FindFirstChild("Data") and LP.Data:FindFirstChild("Skins")}
+        for _, path in pairs(p) do if path then for _, v in pairs(path:GetDescendants()) do if v:IsA("BoolValue") then v.Value = true end end end end
+    end)
+end})
+TabMisc:CreateToggle({Name = "Third Person", Flag = "TP", Callback = function(v) HK_SET.Misc.TP = v end})
+
+Rayfield:LoadConfiguration()
+
 
 
 
